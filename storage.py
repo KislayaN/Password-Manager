@@ -1,7 +1,3 @@
-# Loads data from file
-# Save data to file
-# Add / get / delete entries 
-
 import sys, os
 import json
 
@@ -13,64 +9,56 @@ if project_root not in sys.path:
 
 from utils import Cryptography
 
-class Store:
-    def __init__(self):
+class JSONStorage:
+    def __init__(self, file):
         super().__init__()
-        self.key = None
-        self.value = None
-        self.title = None
+        self.file = file
         self.cryptographer = Cryptography()
         
-    def add(self, key, value, title):
-        self.key = key
-        self.value = value
-        self.title = title
+    def load_data(self):
+        try: 
+            with open(self.file, 'r') as f:
+                return json.load(f)
+        except:
+            return {}
         
-        with open("data.json", "r") as f:
-            data = json.load(f)
+    def save_data(self, data):
+        with open(self.file, 'w') as f:
+            json.dump(data, f, indent=4)
+        
+    def add_entry(self, site, key, value):
+        
+        data = self.load_data()
 
         encryped_key = self.cryptographer.perform_encrypt(key)
         encryped_value = self.cryptographer.perform_encrypt(value)
-        data[title] = {'username': encryped_key, 'password': encryped_value}
+        data[site] = {'username': encryped_key, 'password': encryped_value}
 
-        with open("data.json", "w") as f:
-            json.dump(data, f, indent=4)
+        self.save_data(data)
         
-    def get(self, title, key):
-        self.key = key
-        self.title = title
+    def get_entry(self, title):
         
-        with open("data.json", "r") as f:
-            data = json.load(f)
+        data = self.load_data()
 
-        token = data.get(title, {}).get(key)
-        decrypted_key = self.cryptographer.perform_decrypt(token=token)
+        if title not in data:
+            raise ValueError("given title not found!")
         
-        return decrypted_key
+        token = data.get(title)
+        decrypted_key = self.cryptographer.perform_decrypt(token=token['username'])
+        decrypted_value = self.cryptographer.perform_decrypt(token=token['password'])
         
-    def delt(self, title):
-        self.title = title
+        return decrypted_key, decrypted_value
         
-        with open("data.json", "r") as f:
-            data = json.load(f)
-            
-            if title not in data:
-                raise ValueError("given title not found!")
-            
-            else: 
-                del data[title]
-            
-            with open("data.json", 'w') as f:
-                json.dump(data, f, indent=4)
-            
-method = Store()
-
-title = str(input("Enter the title: "))
-key = str(input("Enter the username: "))
-value = str(input("Enter the password: "))
-
-method.add(title=title,
-                 key=key,
-                 value=value)
-
-method.delt(title='Twitter')
+    def delete_key(self, title):
+        
+        data = self.load_data()
+        
+        if title not in data:
+            raise ValueError("title not found!")
+        
+        deleted_title = data[title]
+        del deleted_title
+        
+        self.save_data(data)
+        
+        return deleted_title
