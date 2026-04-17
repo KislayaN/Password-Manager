@@ -31,4 +31,7 @@ class Cryptography:
         return self.fernet.encrypt(text.encode()).decode()
     
     def perform_decrypt(self, token):
+        self.key = self.get_key()
+        self.fernet = Fernet(self.key)
+        
         return self.fernet.decrypt(token.encode()).decode()
